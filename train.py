@@ -11,9 +11,10 @@ import os
 import numpy as np
 import logging
 import datetime
+from torchvision.models import resnet50, ResNet50_Weights
 
 def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
-                    wandb_logger=None, epoch=0):
+                    wandb_logger=None, epoch=0, perceptual_loss=False):
     '''
 
     :param model:
@@ -38,7 +39,9 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
         low_res = low_res.view(low_res.shape[0], 3, 128, 128)
         high_res = high_res.view(high_res.shape[0], 3, 512, 512)
         optimizer.zero_grad()
-        out_train, out_real = model(low_res, high_res)
+        # out_train, out_real = model(low_res, high_res)
+        out_real = high_res
+        out_train = model(low_res)
         loss = criterion(out_train, out_real)
         loss.backward()
         optimizer.step()
@@ -50,6 +53,8 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
         if i % 1 == 0:
             print(f'Batch {i}/{len_dataloader} Loss: {loss.item()}')
         i += 1
+        if i % 500 == 0:
+            torch.save(model.state_dict(), f'models/train_{i}.pth')
         torch.cuda.empty_cache()
     return tot_loss / len_dataloader
 
@@ -72,7 +77,8 @@ def validate(model, dataloader, criterion, device):
 
 
 def train_epochs(num_epochs, model, trainloader, validloader, optimizer, criterion_train, criterion_valid, device,
-                 aug=None, start_epoch=0, save_every=10, save_name='model', wandb_logger=None):
+                 aug=None, start_epoch=0, save_every=10, save_name='model', wandb_logger=None,
+                 perceptual_loss=False):
     '''
 
     :param num_epochs:

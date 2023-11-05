@@ -29,14 +29,22 @@ if __name__ == '__main__':
     #            name="superres_run1")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
-    model = models.TrainingNetwork()
+    model = models.SarSubPixel()
+    model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=1)
     criterion = nn.MSELoss()
     transform = T.Compose([T.ToTensor(), T.Resize((512, 512))])
-    trainloader = DataLoader(dataset.StuffDataset('train2017', transform), batch_size=64, shuffle=True)
-    validloader = DataLoader(dataset.StuffDataset('val2017', transform), batch_size=64, shuffle=True)
+    trainloader = DataLoader(dataset.StuffDataset('train2017', transform), batch_size=32, shuffle=True)
+    validloader = DataLoader(dataset.StuffDataset('val2017', transform), batch_size=32, shuffle=True)
+    # for lr, hr in iter(trainloader):
+    #     model2 = models.SarVAE(scale_factor=4).to(device)
+    #     x = lr.to(device)
+    #     out = model2(x)
+    #     break
+
     loss, val = train.train_epochs(num_epochs=1,
-                                   model=nn.DataParallel(model).to(device),
+                                   model=model,
                                    trainloader=trainloader,
                                    validloader=validloader,
                                    optimizer=optimizer,
