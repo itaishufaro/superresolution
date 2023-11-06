@@ -1,6 +1,8 @@
 import pandas as pd
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
+
+import models
 from dataset import StuffDataset
 import torch
 from torch import nn
@@ -14,7 +16,7 @@ from torchvision.models import resnet50, ResNet50_Weights
 
 def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
                     wandb_logger=None, epoch=0, perceptual_loss=False,
-                    resnet=None, save_every=500):
+                    PerceptualLoss=None, save_every=2000):
     '''
 
     :param model:
@@ -36,24 +38,26 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
         if not aug is None:
             low_res = aug(low_res)
             high_res = aug(high_res)
-        low_res = low_res.view(low_res.shape[0], 3, 128, 128)
-        high_res = high_res.view(high_res.shape[0], 3, 512, 512)
+        low_res = low_res.view(low_res.shape[0], 3, 64, 64)
+        high_res = high_res.view(high_res.shape[0], 3, 256, 256)
         optimizer.zero_grad()
         out_real = high_res
         out_train = model(low_res)
         if perceptual_loss:
-            out_train = resnet(out_train)
-            out_real = resnet(out_real)
-        loss = criterion(out_train, out_real)
+            loss = PerceptualLoss(out_train, out_real)
+        else:
+            loss = criterion(out_train, out_real)
+        loss.retain_grad()
         loss.backward()
+        if i % 1 == 0:
+            # print(loss.is_leaf)
+            print(f'Batch {i}/{len_dataloader} Loss: {loss.item()} Grad: {loss.grad}')
         optimizer.step()
         if wandb_logger is not None:
             wandb_logger.log({f"{log_section}/episode": len_dataloader * epoch + i},
                 {f"{log_section}/lr": optimizer.param_groups[0]['lr']},
                 {f"{log_section}/avg_loss": loss.item()})
         tot_loss += loss.item()
-        if i % 1 == 0:
-            print(f'Batch {i}/{len_dataloader} Loss: {loss.item()}')
         i += 1
         if i % save_every == 0:
             torch.save(model.state_dict(), f'models/train_epoch_{epoch}_iter_{i}.pth')
@@ -78,7 +82,7 @@ def validate(model, dataloader, criterion, device):
     return eval_loss / len(dataloader)
 
 
-def train_epochs(num_epochs, model, trainloader, validloader, optimizer, criterion_train, criterion_valid, device,
+def train_epochs(num_epochs, model, trainloader, validloader, optimizer, scheduler, criterion_train, criterion_valid, device,
                  aug=None, start_epoch=0, save_every=10, save_name='model', wandb_logger=None,
                  perceptual_loss=False):
     '''
@@ -88,6 +92,7 @@ def train_epochs(num_epochs, model, trainloader, validloader, optimizer, criteri
     :param trainloader:
     :param validloader:
     :param optimizer:
+    :param scheduler:
     :param criterion_train:
     :param criterion_valid:
     :param device:
@@ -99,15 +104,20 @@ def train_epochs(num_epochs, model, trainloader, validloader, optimizer, criteri
     '''
     loss_points = []
     valid_points = []
+    Per = None
     if perceptual_loss:
-        resnet = resnet50(ResNet50_Weights.DEFAULT).to(device)
+        resnet = resnet50(weights=ResNet50_Weights.DEFAULT).to(device)
+        resnet = nn.Sequential(*list(resnet.children())[:-1])
+        resnet.requires_grad_ = False
+        Per = models.PerceptualLoss(feature_extractor=resnet)
     for epoch in range(num_epochs):
         loss = train_one_epoch(model, trainloader, optimizer, criterion_train, device, aug,
                                wandb_logger=wandb_logger, epoch=epoch + start_epoch, perceptual_loss=perceptual_loss,
-                               resnet=resnet)
+                               PerceptualLoss=Per)
         print(f'Epoch {epoch + 1 + start_epoch} Loss: {loss}')
         loss_points.append(loss)
         val = validate(model.superResolution, validloader, criterion_valid, device)
+        scheduler.step(val)
         log_section = 'val'
         print(f'Epoch {epoch + 1 + start_epoch} Validation Loss: {val}')
         valid_points.append(val)

@@ -38,9 +38,9 @@ if __name__ == '__main__':
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     gamma = 0.95
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer=optimizer, gamma=gamma)
-    criterion = nn.MSELoss()
-    transform = T.Compose([T.ToTensor(), T.Resize((512, 512))])
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer)
+    criterion = nn.MSELoss().to(device)
+    transform = T.Compose([T.ToTensor(), T.Resize((256, 256))])
     trainLoader = DataLoader(dataset.StuffDataset(train_dir, transform), batch_size=32, shuffle=True)
     validLoader = DataLoader(dataset.StuffDataset(valid_dir, transform), batch_size=32, shuffle=True)
     loss, val = train.train_epochs(num_epochs=1,
@@ -48,8 +48,10 @@ if __name__ == '__main__':
                                    trainloader=trainLoader,
                                    validloader=validLoader,
                                    optimizer=optimizer,
+                                   scheduler=scheduler,
                                    criterion_train=criterion,
                                    criterion_valid=criterion,
                                    device=device,
-                                   save_every=1)
+                                   save_every=1,
+                                   perceptual_loss=True)
 

@@ -51,24 +51,15 @@ class SarSubPixel(nn.Module):
 
 
 
-# class TrainingNetwork(nn.Module):
-#     def __init__(self, scale_factor=4, drop_prob=0.1):
-#         super(TrainingNetwork, self).__init__()
-#         self.scale_factor = scale_factor
-#         self.drop_prob = drop_prob
-#         self.superResolution = SarSubPixel(scale_factor=self.scale_factor, drop_prob=self.drop_prob)
-#         resnet = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
-#         self.resnet_features = nn.Sequential(*list(resnet.children())[:-1])
-#         self.resnet_features.requires_grad = False
-#
-#     def forward(self, train_img, test_img):
-#         x = self.superResolution(train_img)
-#         x = self.resnet_features(x)
-#         y = self.resnet_features(test_img)
-#         return x, y
-#
-#     def getsuperres(self):
-#         return self.superResolution
+class PerceptualLoss(nn.Module):
+    def __init__(self, feature_extractor):
+        super(PerceptualLoss, self).__init__()
+        self.feature_extractor = feature_extractor
+
+    def forward(self, train_hr, target_hr):
+        x1 = self.feature_extractor(train_hr)
+        x2 = self.feature_extractor(target_hr)
+        return nn.MSELoss()(x1, x2)
 
 
 class SarVAE(nn.Module):

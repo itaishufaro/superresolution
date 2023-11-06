@@ -24,6 +24,7 @@ class StuffDataset(Dataset):
         image = Image.open(os.path.join(self.root_dir, img_name)).convert('RGB')
         if self.transforms:
             image = self.transforms(image)
-        low_res = T.GaussianBlur(kernel_size=(5, 5), sigma=(0.1, 2.0))(image)
-        low_res = T.Resize((128, 128))(low_res)
+        low_res = image
+        # low_res = T.GaussianBlur(kernel_size=(5, 5), sigma=(0.1, 2.0))(image)
+        low_res = T.Resize((64, 64))(low_res)
         return low_res, image
