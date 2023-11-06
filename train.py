@@ -44,6 +44,8 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
         out_real = high_res
         out_train = model(low_res)
         if perceptual_loss:
+            out_real = out_real.repeat(1, 3, 1, 1)
+            out_train = out_train.repeat(1, 3, 1, 1)
             loss = PerceptualLoss(out_train, out_real)
         else:
             loss = criterion(out_train, out_real)

@@ -41,9 +41,9 @@ if __name__ == '__main__':
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer)
     criterion = nn.MSELoss().to(device)
     transform = T.Compose([T.ToTensor()])
-    trainLoader = DataLoader(dataset.StuffDataset(train_dir, transforms=transform), batch_size=1, shuffle=True)
-    validLoader = DataLoader(dataset.StuffDataset(valid_dir, transforms=transform), batch_size=1, shuffle=True)
-    loss, val = train.train_epochs(num_epochs=1,
+    trainLoader = DataLoader(dataset.StuffDataset(train_dir, transforms=transform), batch_size=10, shuffle=True)
+    validLoader = DataLoader(dataset.StuffDataset(valid_dir, transforms=transform), batch_size=10, shuffle=True)
+    loss, val = train.train_epochs(num_epochs=100,
                                    model=model,
                                    trainloader=trainLoader,
                                    validloader=validLoader,
@@ -52,6 +52,6 @@ if __name__ == '__main__':
                                    criterion_train=criterion,
                                    criterion_valid=criterion,
                                    device=device,
-                                   save_every=1,
-                                   perceptual_loss=False)
+                                   save_every=10,
+                                   perceptual_loss=True)
 

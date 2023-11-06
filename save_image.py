@@ -16,7 +16,7 @@ import dataset
 
 
 if __name__ == '__main__':
-    path_to_model = 'models/model_1.pth'
+    path_to_model = 'models/model_100.pth'
     model = models.SarSubPixel(colors=1)
     model.load_state_dict(torch.load(path_to_model))
     model.eval()
