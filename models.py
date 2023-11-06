@@ -1,36 +1,48 @@
 import torch
 from torch import nn
-from transformers import pipeline
+
 
 class SarSubPixel(nn.Module):
-    def __init__(self, scale_factor=4, drop_prob=0.1):
+    def __init__(self, scale_factor=4, drop_prob=0.1,
+                 colors=3):
+        '''
+
+        :param scale_factor: How much upscaling we want in our image
+        :param drop_prob: How much dropout probability we want
+        :param colors: How many color channels does the image have
+        '''
         super(SarSubPixel, self).__init__()
         self.scale_factor = scale_factor
         self.drop_prob = drop_prob
         # Feature extraction
         self.features = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=5, padding=2),
+            nn.Conv2d(colors, 64, kernel_size=5, padding=2),
             nn.ReLU(inplace=True),
             nn.Conv2d(64, 32, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.Dropout(self.drop_prob)
         )
 
-        # Upsampling layers
+        # sub-pixel layer
         self.sub_pixel = nn.Sequential(
-            nn.Conv2d(32, (scale_factor**2)*3, kernel_size=3, padding=1),
+            nn.Conv2d(32, (scale_factor**2)*colors, kernel_size=3, padding=1),
             nn.ReLU(inplace=True),
             nn.PixelShuffle(upscale_factor=self.scale_factor)
         )
 
-        # self.output = nn.Conv2d(16, 3, kernel_size=3, padding=1)
-
     def forward(self, x):
+        '''
+        :param x: network input image
+        :return: network output higher resolution image
+        '''
         x = self.features(x)
         x = self.sub_pixel(x)
         return x
 
     def initialize_weights(self):
+        '''
+        Initializes all weight according to kaiming normal initialization
+        '''
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
                 nn.init.kaiming_normal_(m.weight)
@@ -39,24 +51,24 @@ class SarSubPixel(nn.Module):
 
 
 
-class TrainingNetwork(nn.Module):
-    def __init__(self, scale_factor=4, drop_prob=0.1):
-        super(TrainingNetwork, self).__init__()
-        self.scale_factor = scale_factor
-        self.drop_prob = drop_prob
-        self.superResolution = SarSubPixel(scale_factor=self.scale_factor, drop_prob=self.drop_prob)
-        resnet = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
-        self.resnet_features = nn.Sequential(*list(resnet.children())[:-1])
-        self.resnet_features.requires_grad = False
-
-    def forward(self, train_img, test_img):
-        x = self.superResolution(train_img)
-        x = self.resnet_features(x)
-        y = self.resnet_features(test_img)
-        return x, y
-
-    def getsuperres(self):
-        return self.superResolution
+# class TrainingNetwork(nn.Module):
+#     def __init__(self, scale_factor=4, drop_prob=0.1):
+#         super(TrainingNetwork, self).__init__()
+#         self.scale_factor = scale_factor
+#         self.drop_prob = drop_prob
+#         self.superResolution = SarSubPixel(scale_factor=self.scale_factor, drop_prob=self.drop_prob)
+#         resnet = torch.hub.load('pytorch/vision:v0.6.0', 'resnet18', pretrained=True)
+#         self.resnet_features = nn.Sequential(*list(resnet.children())[:-1])
+#         self.resnet_features.requires_grad = False
+#
+#     def forward(self, train_img, test_img):
+#         x = self.superResolution(train_img)
+#         x = self.resnet_features(x)
+#         y = self.resnet_features(test_img)
+#         return x, y
+#
+#     def getsuperres(self):
+#         return self.superResolution
 
 
 class SarVAE(nn.Module):

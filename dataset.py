@@ -22,8 +22,6 @@ class StuffDataset(Dataset):
     def __getitem__(self, idx):
         img_name = self.df[idx]
         image = Image.open(os.path.join(self.root_dir, img_name)).convert('RGB')
-        # image = image.convert('RGB')
-        # image = image.resize((512, 512))
         if self.transforms:
             image = self.transforms(image)
         low_res = T.GaussianBlur(kernel_size=(5, 5), sigma=(0.1, 2.0))(image)

@@ -4,7 +4,6 @@ import torchvision.transforms as T
 from dataset import StuffDataset
 import torch
 from torch import nn
-from transformers import BertTokenizer
 import matplotlib.pyplot as plt
 import wandb
 import os
@@ -14,7 +13,8 @@ import datetime
 from torchvision.models import resnet50, ResNet50_Weights
 
 def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
-                    wandb_logger=None, epoch=0, perceptual_loss=False):
+                    wandb_logger=None, epoch=0, perceptual_loss=False,
+                    resnet=None, save_every=500):
     '''
 
     :param model:
@@ -39,9 +39,11 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
         low_res = low_res.view(low_res.shape[0], 3, 128, 128)
         high_res = high_res.view(high_res.shape[0], 3, 512, 512)
         optimizer.zero_grad()
-        # out_train, out_real = model(low_res, high_res)
         out_real = high_res
         out_train = model(low_res)
+        if perceptual_loss:
+            out_train = resnet(out_train)
+            out_real = resnet(out_real)
         loss = criterion(out_train, out_real)
         loss.backward()
         optimizer.step()
@@ -53,8 +55,8 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
         if i % 1 == 0:
             print(f'Batch {i}/{len_dataloader} Loss: {loss.item()}')
         i += 1
-        if i % 500 == 0:
-            torch.save(model.state_dict(), f'models/train_{i}.pth')
+        if i % save_every == 0:
+            torch.save(model.state_dict(), f'models/train_epoch_{epoch}_iter_{i}.pth')
         torch.cuda.empty_cache()
     return tot_loss / len_dataloader
 
@@ -97,9 +99,12 @@ def train_epochs(num_epochs, model, trainloader, validloader, optimizer, criteri
     '''
     loss_points = []
     valid_points = []
+    if perceptual_loss:
+        resnet = resnet50(ResNet50_Weights.DEFAULT).to(device)
     for epoch in range(num_epochs):
         loss = train_one_epoch(model, trainloader, optimizer, criterion_train, device, aug,
-                               wandb_logger=wandb_logger, epoch=epoch + start_epoch)
+                               wandb_logger=wandb_logger, epoch=epoch + start_epoch, perceptual_loss=perceptual_loss,
+                               resnet=resnet)
         print(f'Epoch {epoch + 1 + start_epoch} Loss: {loss}')
         loss_points.append(loss)
         val = validate(model.superResolution, validloader, criterion_valid, device)
@@ -111,4 +116,4 @@ def train_epochs(num_epochs, model, trainloader, validloader, optimizer, criteri
                 {f"{log_section}/avg_error": val},
                 {f"{log_section}/avg_loss": loss})
         if (epoch + 1) % save_every == 0:
-            torch.save(model.superResolution.state_dict(), f'models/{save_name}_{epoch + 1 + start_epoch}.pth')
+            torch.save(model.state_dict(), f'models/{save_name}_{epoch + 1 + start_epoch}.pth')
