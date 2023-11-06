@@ -34,24 +34,23 @@ if __name__ == '__main__':
                    name="superres_run1")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
-    model = models.SarSubPixel(colors=1)
+    model = models.SarSubPixel(colors=1, drop_prob=0.1)
     model = model.to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    gamma = 0.95
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer)
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3, weight_decay=0.0001, momentum=0.9)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5, verbose=True)
     criterion = nn.MSELoss().to(device)
     transform = T.Compose([T.ToTensor()])
     trainLoader = DataLoader(dataset.StuffDataset(train_dir, transforms=transform), batch_size=10, shuffle=True)
     validLoader = DataLoader(dataset.StuffDataset(valid_dir, transforms=transform), batch_size=10, shuffle=True)
-    loss, val = train.train_epochs(num_epochs=100,
+    train.train_epochs(num_epochs=500,
                                    model=model,
                                    trainloader=trainLoader,
                                    validloader=validLoader,
                                    optimizer=optimizer,
                                    scheduler=scheduler,
                                    criterion_train=criterion,
-                                   criterion_valid=criterion,
+                                   criterion_valid=train.PSNR,
                                    device=device,
-                                   save_every=10,
-                                   perceptual_loss=True)
+                                   save_every=100,
+                                   perceptual_loss=False)
 

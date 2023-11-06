@@ -13,10 +13,25 @@ import numpy as np
 import logging
 import datetime
 from torchvision.models import resnet50, ResNet50_Weights
+from torchmetrics.image import StructuralSimilarityIndexMeasure
+
+SSIM = StructuralSimilarityIndexMeasure().to(device='cuda')
+
+def total_variation(img):
+    bs_img, c_img, h_img, w_img = img.size()
+    tv_h = torch.abs(img[:, :, 1:, :] - img[:, :, :-1, :]).sum()
+    tv_w = torch.abs(img[:, :, :, 1:] - img[:, :, :, :-1]).sum()
+    return (tv_h + tv_w) / (bs_img * c_img * h_img * w_img)
+
+
+def PSNR(img1, img2):
+    x = torch.pow(img1 - img2, 2).mean()
+    return 10 * torch.log10(1 / x)
+
 
 def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
                     wandb_logger=None, epoch=0, perceptual_loss=False,
-                    PerceptualLoss=None, save_every=2000):
+                    PerceptualLoss=None, save_every=2000, lam=0.01):
     '''
 
     :param model:
@@ -43,12 +58,14 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
         optimizer.zero_grad()
         out_real = high_res
         out_train = model(low_res)
+        tv = total_variation(out_train)
         if perceptual_loss:
             out_real = out_real.repeat(1, 3, 1, 1)
             out_train = out_train.repeat(1, 3, 1, 1)
             loss = PerceptualLoss(out_train, out_real)
         else:
             loss = criterion(out_train, out_real)
+        loss -= lam * tv
         loss.retain_grad()
         loss.backward()
         if i % 1 == 0:
@@ -81,6 +98,8 @@ def validate(model, dataloader, criterion, device):
     for lr, hr in iter(dataloader):
         hr_model = model(lr.to(device))
         eval_loss += criterion(hr_model, hr.to(device)).item()
+        x = SSIM(hr_model, hr.to(device))
+        print(f"SSIM: {x}")
     return eval_loss / len(dataloader)
 
 
@@ -116,7 +135,6 @@ def train_epochs(num_epochs, model, trainloader, validloader, optimizer, schedul
         loss = train_one_epoch(model, trainloader, optimizer, criterion_train, device, aug,
                                wandb_logger=wandb_logger, epoch=epoch + start_epoch, perceptual_loss=perceptual_loss,
                                PerceptualLoss=Per)
-        print(f'Epoch {epoch + 1 + start_epoch} Loss: {loss}')
         loss_points.append(loss)
         val = validate(model, validloader, criterion_valid, device)
         scheduler.step(val)
