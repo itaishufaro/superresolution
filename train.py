@@ -108,7 +108,7 @@ def train_epochs(num_epochs, model, trainloader, validloader, optimizer, schedul
     if perceptual_loss:
         resnet = resnet50(weights=ResNet50_Weights.DEFAULT).to(device)
         resnet = nn.Sequential(*list(resnet.children())[:-1])
-        resnet.requires_grad_ = False
+        resnet.eval()
         Per = models.PerceptualLoss(feature_extractor=resnet)
     for epoch in range(num_epochs):
         loss = train_one_epoch(model, trainloader, optimizer, criterion_train, device, aug,
