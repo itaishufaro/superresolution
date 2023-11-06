@@ -3,7 +3,7 @@ from torch import nn
 
 
 class SarSubPixel(nn.Module):
-    def __init__(self, scale_factor=4, drop_prob=0.1,
+    def __init__(self, scale_factor=2, drop_prob=0.1,
                  colors=3):
         '''
 
@@ -14,16 +14,15 @@ class SarSubPixel(nn.Module):
         super(SarSubPixel, self).__init__()
         self.scale_factor = scale_factor
         self.drop_prob = drop_prob
+        self.colors = colors
         # Feature extraction
         self.features = nn.Sequential(
-            nn.Conv2d(colors, 64, kernel_size=(3, 3), padding=(1, 1)),
-            nn.Tanh(),
-            nn.Conv2d(64, 64, (5,5), (1,1), (2,2)),
+            nn.Conv2d(self.colors, 64, (5,5), (1,1), (2,2)),
             nn.Tanh(),
             nn.Conv2d(64, 32, (3,3),(1,1),(1,1)),
             nn.Tanh(),
+            nn.Dropout(self.drop_prob),
             # nn.BatchNorm2d(32),
-            nn.Dropout(self.drop_prob)
         )
 
         # sub-pixel layer

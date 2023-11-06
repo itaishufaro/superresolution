@@ -13,10 +13,14 @@ import numpy as np
 import logging
 import datetime
 from torchvision.models import resnet50, ResNet50_Weights
-from torchmetrics.image import StructuralSimilarityIndexMeasure
+from torchmetrics.image import StructuralSimilarityIndexMeasure, PeakSignalNoiseRatio
+from sklearn.model_selection import train_test_split
+import dataset
+WANDB_KEY = "01717b5e711e2653d9cc50175f88588ce40619df"
+WANDB_ENTITY = "itai-shufaro"
 
-SSIM = StructuralSimilarityIndexMeasure().to(device='cuda')
-
+# SSIM = StructuralSimilarityIndexMeasure().to(device='cuda')
+SEED = 1234
 def total_variation(img):
     bs_img, c_img, h_img, w_img = img.size()
     tv_h = torch.abs(img[:, :, 1:, :] - img[:, :, :-1, :]).sum()
@@ -68,7 +72,7 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
         loss -= lam * tv
         loss.retain_grad()
         loss.backward()
-        if i % 1 == 0:
+        if i % 100 == 0:
             # print(loss.is_leaf)
             print(f'Batch {i}/{len_dataloader} Loss: {loss.item()} Grad: {loss.grad}')
         optimizer.step()
@@ -95,15 +99,19 @@ def validate(model, dataloader, criterion, device):
     '''
     model.eval()
     eval_loss = 0
+    x = 0
     for lr, hr in iter(dataloader):
         hr_model = model(lr.to(device))
-        eval_loss += criterion(hr_model, hr.to(device)).item()
-        x = SSIM(hr_model, hr.to(device))
-        print(f"SSIM: {x}")
+        j = hr.to(device)
+        eval_loss += criterion(hr_model, j).item()
+        # x += SSIM(hr_model, j)
+        torch.cuda.empty_cache()
+    # print(f"SSIM: {x/len(dataloader)}")
     return eval_loss / len(dataloader)
 
 
-def train_epochs(num_epochs, model, trainloader, validloader, optimizer, scheduler, criterion_train, criterion_valid, device,
+def train_epochs(num_epochs, model, trainloader, validloader, optimizer, scheduler,
+                 criterion_train, criterion_valid, device,
                  aug=None, start_epoch=0, save_every=10, save_name='model', wandb_logger=None,
                  perceptual_loss=False):
     '''
@@ -137,7 +145,7 @@ def train_epochs(num_epochs, model, trainloader, validloader, optimizer, schedul
                                PerceptualLoss=Per)
         loss_points.append(loss)
         val = validate(model, validloader, criterion_valid, device)
-        scheduler.step(val)
+        scheduler.step()
         log_section = 'val'
         print(f'Epoch {epoch + 1 + start_epoch} Validation Loss: {val}')
         valid_points.append(val)
@@ -147,3 +155,40 @@ def train_epochs(num_epochs, model, trainloader, validloader, optimizer, schedul
                 {f"{log_section}/avg_loss": loss})
         if (epoch + 1) % save_every == 0:
             torch.save(model.state_dict(), f'models/{save_name}_{epoch + 1 + start_epoch}.pth')
+    return loss_points, valid_points
+
+
+# A function for hyperparameter search
+def hyperparameter_search():
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    wandb.init()
+    params = wandb.config
+    model = models.SarSubPixel(colors=1, drop_prob=0.1).to(device)
+    optimizer = torch.optim.SGD(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'],
+                                momentum=params['momentum'])
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=params['step_size'], gamma=params['gamma'],
+                                                verbose=True)
+    criterion = nn.MSELoss().to(device)
+    valid_criterion = PeakSignalNoiseRatio().to(device)
+    transform = T.Compose([T.ToTensor()])
+    SARDataset = dataset.StuffDataset(params['train_dir'], transforms=transform, inputH=256, inputW=256)
+    # split the dataset into train, validation and test data loaders
+    trainFull_set, test_set = train_test_split(SARDataset, test_size=0.2, random_state=SEED)
+    train_set, val_set = train_test_split(trainFull_set, test_size=0.2, random_state=SEED)
+    train_loader = DataLoader(train_set, batch_size=512, shuffle=True)
+    valid_loader = DataLoader(val_set, batch_size=512, shuffle=True)
+    # test_loader = DataLoader(test_set, batch_size=512, shuffle=True)
+    loss_points, valid_points = train_epochs(num_epochs=10, model=model,
+                                             trainloader=train_loader,
+                                             validloader=valid_loader,
+                                             optimizer=optimizer, scheduler=scheduler,
+                                             criterion_train=criterion,
+                                             criterion_valid=valid_criterion, device=device,
+                                             aug=None, start_epoch=0,
+                                             save_every=10,
+                                             save_name=f"model_{params['lr']}_{params['weight_decay']}_{params['momentum']}_{params['step_size']}_{params['gamma']}",
+                                             wandb_logger=None,
+                                             perceptual_loss=False)
+    wandb.log({'val_loss': valid_points[-1]})
+
+
