@@ -38,8 +38,8 @@ def train_one_epoch(model, dataloader, optimizer, criterion, device, aug=None,
         if not aug is None:
             low_res = aug(low_res)
             high_res = aug(high_res)
-        low_res = low_res.view(low_res.shape[0], 3, 64, 64)
-        high_res = high_res.view(high_res.shape[0], 3, 256, 256)
+        # low_res = low_res.view(low_res.shape[0], 3, 64, 64)
+        # high_res = high_res.view(high_res.shape[0], 3, 256, 256)
         optimizer.zero_grad()
         out_real = high_res
         out_train = model(low_res)
@@ -116,7 +116,7 @@ def train_epochs(num_epochs, model, trainloader, validloader, optimizer, schedul
                                PerceptualLoss=Per)
         print(f'Epoch {epoch + 1 + start_epoch} Loss: {loss}')
         loss_points.append(loss)
-        val = validate(model.superResolution, validloader, criterion_valid, device)
+        val = validate(model, validloader, criterion_valid, device)
         scheduler.step(val)
         log_section = 'val'
         print(f'Epoch {epoch + 1 + start_epoch} Validation Loss: {val}')

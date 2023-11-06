@@ -25,8 +25,8 @@ def parse_args():
 
 if __name__ == '__main__':
     use_logger = False
-    train_dir = 'train2017'
-    valid_dir = 'val2017'
+    train_dir = 'trainSAR'
+    valid_dir = 'trainSAR'
     if use_logger:
         wandb.login(key=WANDB_KEY)
         wandb.init(entity=WANDB_ENTITY,
@@ -34,15 +34,15 @@ if __name__ == '__main__':
                    name="superres_run1")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
-    model = models.SarSubPixel()
+    model = models.SarSubPixel(colors=1)
     model = model.to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
     gamma = 0.95
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer)
     criterion = nn.MSELoss().to(device)
-    transform = T.Compose([T.ToTensor(), T.Resize((256, 256))])
-    trainLoader = DataLoader(dataset.StuffDataset(train_dir, transform), batch_size=32, shuffle=True)
-    validLoader = DataLoader(dataset.StuffDataset(valid_dir, transform), batch_size=32, shuffle=True)
+    transform = T.Compose([T.ToTensor()])
+    trainLoader = DataLoader(dataset.StuffDataset(train_dir, transforms=transform), batch_size=1, shuffle=True)
+    validLoader = DataLoader(dataset.StuffDataset(valid_dir, transforms=transform), batch_size=1, shuffle=True)
     loss, val = train.train_epochs(num_epochs=1,
                                    model=model,
                                    trainloader=trainLoader,
@@ -53,5 +53,5 @@ if __name__ == '__main__':
                                    criterion_valid=criterion,
                                    device=device,
                                    save_every=1,
-                                   perceptual_loss=True)
+                                   perceptual_loss=False)
 
