@@ -11,7 +11,7 @@ from kornia.augmentation import AugmentationSequential
 
 
 class StuffDataset(Dataset):
-    def __init__(self, root_dir, inputH=256, inputW=256, scale_factor=2, transforms=None):
+    def __init__(self, root_dir, inputH=256, inputW=256, scale_factor=4, transforms=None):
         self.root_dir = root_dir
         self.transforms = transforms
         self.H = inputH

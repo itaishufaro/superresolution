@@ -41,8 +41,8 @@ if __name__ == '__main__':
     # optimizer = torch.optim.SGD(model.parameters(), lr=1e-4, weight_decay=0.0001, momentum=0.9)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5, verbose=True)
     # criterion = nn.MSELoss().to(device)
-    gen_optimizer = torch.optim.SGD(generator.parameters(), lr=1e-3, weight_decay=0.0001, momentum=0.9)
-    disc_optimizer = torch.optim.SGD(discriminator.parameters(), lr=1e-3, weight_decay=0.0001, momentum=0.9)
+    gen_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-4, weight_decay=0.0001)
+    disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-4, weight_decay=0.0001)
     gen_scheduler = torch.optim.lr_scheduler.StepLR(gen_optimizer, step_size=20, gamma=0.5)
     disc_scheduler = torch.optim.lr_scheduler.StepLR(disc_optimizer, step_size=20, gamma=0.5)
     transform = T.Compose([T.ToTensor()])
@@ -62,7 +62,7 @@ if __name__ == '__main__':
             testloader=train_loader, gen_optimizer=gen_optimizer,
             disc_optimizer=disc_optimizer, device=device,
             aug=None, start_epoch=0, save_every=10, save_name='model', wandb_logger=None,
-            alpha=1e-5, gen_scheduler=gen_scheduler, disc_scheduler=disc_scheduler)
+            alpha=1e-2, gen_scheduler=None, disc_scheduler=None)
 
 
 

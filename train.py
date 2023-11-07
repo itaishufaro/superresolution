@@ -205,7 +205,6 @@ def train_gan(num_epochs, generator, discriminator, trainloader, testloader, gen
               aug=None, start_epoch=0, save_every=10, save_name='model', wandb_logger=None,
               alpha=1e-5, gen_scheduler=None, disc_scheduler=None):
     '''
-
     :param model:
     :param discriminator:
     :param trainloader:
@@ -221,7 +220,7 @@ def train_gan(num_epochs, generator, discriminator, trainloader, testloader, gen
     loss_points = []
     valid_points = []
     criterion_train = nn.MSELoss().to(device)
-    criterion_valid = StructuralSimilarityIndexMeasure().to(device)
+    criterion_valid = PeakSignalNoiseRatio().to(device)
     for epoch in range(start_epoch, start_epoch + num_epochs):
         for lr, hr in iter(trainloader):
             lr = lr.to(device)
