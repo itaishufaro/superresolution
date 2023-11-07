@@ -217,10 +217,11 @@ class Discriminator(nn.Module):
         self.features = resnet50(weights=None)
         self.final_size = final_size
         self.fc = nn.Linear(self.final_size, 1)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         rep_x = x.repeat(1, 3, 1, 1)
-        return self.fc(self.features(rep_x))
+        return self.sigmoid(self.fc(self.features(rep_x)))
 
     def init_weight(self):
         for m in self.modules():

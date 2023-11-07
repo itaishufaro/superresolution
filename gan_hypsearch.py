@@ -49,7 +49,7 @@ if __name__ == '__main__':
             'alpha': {'max': 1e-3, 'min': 1e-6},
         }}
     sweep_id = wandb.sweep(sweep_config, project="gan_superres", entity=WANDB_ENTITY)
-    wandb.agent(sweep_id, train.hyperparameter_search, count=1000)
+    wandb.agent(sweep_id, train.gan_hyperparameter, count=1000)
 
 
 

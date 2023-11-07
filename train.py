@@ -215,6 +215,7 @@ def train_gan(num_epochs, generator, discriminator, trainloader, testloader, gen
     :param save_every:
     :return:
     '''
+    torch.cuda.empty_cache()
     loss_points = []
     valid_points = []
     criterion_train = nn.MSELoss().to(device)
@@ -231,6 +232,7 @@ def train_gan(num_epochs, generator, discriminator, trainloader, testloader, gen
             disc_loss = GAN_loss(disc_fake, disc_real)
             disc_loss.backward()
             disc_optimizer.step()
+            torch.cuda.empty_cache() # empty cache to avoid memory leak
             # Train the generator
             gen_optimizer.zero_grad()
             fake_hr = generator(lr)
@@ -241,6 +243,7 @@ def train_gan(num_epochs, generator, discriminator, trainloader, testloader, gen
             gen_optimizer.step()
             torch.cuda.empty_cache() # empty cache to avoid memory leak
             loss_points.append(gen_loss.item())
+            print(gen_loss.item())
         val = validate(generator, testloader, criterion_valid, device)
         valid_points.append(val)
         if gen_scheduler is not None:
@@ -268,16 +271,16 @@ def gan_hyperparameter():
     gen_scheduler = torch.optim.lr_scheduler.StepLR(gen_optimizer, step_size=params['step_size'], gamma=params['gamma'])
     disc_scheduler = torch.optim.lr_scheduler.StepLR(disc_optimizer, step_size=params['step_size'], gamma=params['gamma'])
     transform = T.Compose([T.ToTensor()])
-    SARDataset = dataset.StuffDataset(params['train_dir'], transforms=transform, inputH=256, inputW=256)
+    SARDataset = dataset.StuffDataset(params['train_dir'], transforms=transform, inputH=256, inputW=256, scale_factor=4)
     # split the dataset into train, validation and test data loaders
     trainFull_set, test_set = train_test_split(SARDataset, test_size=0.2, random_state=SEED)
     train_set, val_set = train_test_split(trainFull_set, test_size=0.2, random_state=SEED)
-    train_loader = DataLoader(train_set, batch_size=512, shuffle=True)
-    valid_loader = DataLoader(val_set, batch_size=512, shuffle=True)
+    train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
+    valid_loader = DataLoader(val_set, batch_size=32, shuffle=True)
     # test_loader = DataLoader(test_set, batch_size=512, shuffle=True)
     loss_points, valid_points = train_gan(num_epochs=15, generator=generator,
                     discriminator=discriminator, trainloader=train_loader,
-                    testloader=train_loader, gen_optimizer=gen_optimizer,
+                    testloader=valid_loader, gen_optimizer=gen_optimizer,
                     disc_optimizer=disc_optimizer, device=device,
                     aug=None, start_epoch=0, save_every=15,
                     save_name=f"model_{params['lr']}_{params['weight_decay']}_{params['momentum']}_{params['step_size']}_{params['gamma']}",
