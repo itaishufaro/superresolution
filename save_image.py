@@ -1,6 +1,8 @@
 import pandas as pd
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
+
+import gan
 from dataset import StuffDataset
 import torch
 from torch import nn
@@ -27,13 +29,13 @@ def show_image(lr, model, hr):
 
 
 if __name__ == '__main__':
-    path_to_model = 'models/model_10.pth'
-    model = models.SarSubPixel(colors=1, drop_prob=0.1)
+    path_to_model = 'models/model_100.pth'
+    model = gan.Generator()
     model.load_state_dict(torch.load(path_to_model))
     model.eval()
     transform = T.Compose([T.ToTensor()])
     trainloader = DataLoader(dataset.StuffDataset('trainSAR', transforms=transform), batch_size=1, shuffle=True)
-    validloader = DataLoader(dataset.StuffDataset('valSAR', transforms=transform), batch_size=1, shuffle=True)
+    validloader = DataLoader(dataset.StuffDataset('trainSAR', transforms=transform), batch_size=1, shuffle=True)
     for lr, hr in iter(validloader):
         out = model(lr)
         img_out = Image.fromarray(np.squeeze(np.uint8(out[0].cpu().detach().numpy()*255)), 'L')
