@@ -43,8 +43,8 @@ if __name__ == '__main__':
     # criterion = nn.MSELoss().to(device)
     gen_optimizer = torch.optim.SGD(generator.parameters(), lr=1e-3, weight_decay=0.0001, momentum=0.9)
     disc_optimizer = torch.optim.SGD(discriminator.parameters(), lr=1e-3, weight_decay=0.0001, momentum=0.9)
-    gen_scheduler = torch.optim.lr_scheduler.StepLR(gen_optimizer, step_size=20, gamma=0.5, verbose=True)
-    disc_scheduler = torch.optim.lr_scheduler.StepLR(disc_optimizer, step_size=20, gamma=0.5, verbose=True)
+    gen_scheduler = torch.optim.lr_scheduler.StepLR(gen_optimizer, step_size=20, gamma=0.5)
+    disc_scheduler = torch.optim.lr_scheduler.StepLR(disc_optimizer, step_size=20, gamma=0.5)
     transform = T.Compose([T.ToTensor()])
     # trainLoader = DataLoader(dataset.StuffDataset(train_dir, transforms=transform, inputH=256, inputW=256),
     #                          batch_size=512, shuffle=True)

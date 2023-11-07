@@ -1,3 +1,5 @@
+import math
+
 import pandas as pd
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
@@ -219,31 +221,35 @@ def train_gan(num_epochs, generator, discriminator, trainloader, testloader, gen
     loss_points = []
     valid_points = []
     criterion_train = nn.MSELoss().to(device)
-    criterion_valid = PeakSignalNoiseRatio().to(device)
+    criterion_valid = StructuralSimilarityIndexMeasure().to(device)
     for epoch in range(start_epoch, start_epoch + num_epochs):
         for lr, hr in iter(trainloader):
             lr = lr.to(device)
             hr = hr.to(device)
             # Train the discriminator
+            # discriminator.train()
+            # generator.eval()
+            discriminator.zero_grad()
             disc_optimizer.zero_grad()
             fake_hr = generator(lr)
             disc_fake = discriminator(fake_hr.detach())
             disc_real = discriminator(hr)
-            disc_loss = GAN_loss(disc_fake, disc_real)
+            disc_loss = -GAN_loss(disc_fake, disc_real)
             disc_loss.backward()
             disc_optimizer.step()
             torch.cuda.empty_cache() # empty cache to avoid memory leak
             # Train the generator
+            # discriminator.eval()
+            # generator.train()
+            generator.zero_grad()
             gen_optimizer.zero_grad()
             fake_hr = generator(lr)
             disc_fake = discriminator(fake_hr)
-            disc_real = discriminator(hr)
-            gen_loss = criterion_train(fake_hr, hr) - alpha * GAN_loss(disc_fake, disc_real)
+            gen_loss = criterion_train(fake_hr, hr)-alpha*disc_fake
             gen_loss.backward()
             gen_optimizer.step()
             torch.cuda.empty_cache() # empty cache to avoid memory leak
             loss_points.append(gen_loss.item())
-            print(gen_loss.item())
         val = validate(generator, testloader, criterion_valid, device)
         valid_points.append(val)
         if gen_scheduler is not None:
