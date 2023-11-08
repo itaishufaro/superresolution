@@ -177,7 +177,7 @@ def hyperparameter_search():
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=params['step_size'], gamma=params['gamma'],
                                                 verbose=True)
     criterion = nn.MSELoss().to(device)
-    valid_criterion = PeakSignalNoiseRatio().to(device)
+    valid_criterion = StructuralSimilarityIndexMeasure().to(device)
     transform = T.Compose([T.ToTensor()])
     SARDataset = dataset.StuffDataset(params['train_dir'], transforms=transform, inputH=256, inputW=256)
     # split the dataset into train, validation and test data loaders
@@ -220,9 +220,11 @@ def train_gan(num_epochs, generator, discriminator, trainloader, testloader, gen
     loss_points = []
     valid_points = []
     criterion_train = nn.MSELoss().to(device)
-    criterion_valid = PeakSignalNoiseRatio().to(device)
+    criterion_valid = StructuralSimilarityIndexMeasure().to(device)
     for epoch in range(start_epoch, start_epoch + num_epochs):
         for lr, hr in iter(trainloader):
+            torch.nn.utils.clip_grad_norm(generator.parameters(), 0.5)
+            torch.nn.utils.clip_grad_norm(discriminator.parameters(), 0.5)
             lr = lr.to(device)
             hr = hr.to(device)
             # Train the discriminator
@@ -244,7 +246,7 @@ def train_gan(num_epochs, generator, discriminator, trainloader, testloader, gen
             gen_optimizer.zero_grad()
             fake_hr = generator(lr)
             disc_fake = discriminator(fake_hr)
-            gen_loss = criterion_train(fake_hr, hr)-alpha*disc_fake
+            gen_loss = criterion_train(fake_hr, hr)-alpha*torch.mean(disc_fake)
             gen_loss.backward()
             gen_optimizer.step()
             torch.cuda.empty_cache() # empty cache to avoid memory leak
@@ -257,8 +259,7 @@ def train_gan(num_epochs, generator, discriminator, trainloader, testloader, gen
             disc_scheduler.step()
         print(f'Epoch {epoch + 1} Validation Loss: {val}')
         if wandb_logger is not None:
-            wandb_logger.log({"val/epoch": epoch + 1},
-                {"val/avg_error": val})
+            wandb_logger.log({"val/epoch": epoch + 1, "val/avg_error": val})
         if (epoch + 1) % save_every == 0:
             torch.save(generator.state_dict(), f'models/{save_name}_{epoch + 1}.pth')
     return loss_points, valid_points

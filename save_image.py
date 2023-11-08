@@ -29,14 +29,14 @@ def show_image(lr, model, hr):
 
 
 if __name__ == '__main__':
-    path_to_model = 'models/model_10.pth'
+    path_to_model = 'models/model_gan2_34.pth'
     model = gan.Generator2(scale_factor=2)
     model.load_state_dict(torch.load(path_to_model))
     model.eval()
     transform = T.Compose([T.ToTensor()])
-    trainloader = DataLoader(dataset.StuffDataset('trainSAR', transforms=transform, inputH=512, inputW=512, scale_factor=2), batch_size=1, shuffle=True)
-    validloader = DataLoader(dataset.StuffDataset('trainSAR', transforms=transform), batch_size=1, shuffle=True)
-    for lr, hr in iter(trainloader):
+    trainloader = DataLoader(dataset.StuffDataset('trainSAR', transforms=transform, inputH=256, inputW=256, scale_factor=2), batch_size=1, shuffle=True)
+    validloader = DataLoader(dataset.StuffDataset('trainSAR', transforms=transform, inputH=256, inputW=256, scale_factor=2), batch_size=1, shuffle=True)
+    for lr, hr in iter(validloader):
         out = model(lr)
         img_out = Image.fromarray(np.squeeze(np.uint8(out[0].cpu().detach().numpy()*255)), 'L')
         img_out.save('out.png')
