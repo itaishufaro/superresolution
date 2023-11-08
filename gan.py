@@ -66,7 +66,7 @@ class EncodingConnectionBlock(nn.Module):
 
 
 class Generator2(nn.Module):
-    def __init__(self, drop_prob=0.5, scale_factor=4):
+    def __init__(self, drop_prob=0.1, scale_factor=4):
         super(Generator2, self).__init__()
         self.drop_prob = drop_prob
         self.scale_factor = scale_factor
@@ -86,16 +86,16 @@ class Generator2(nn.Module):
         self.layer10 = EncodingDenseBlock(64, 64, drop_prob=self.drop_prob)
         self.layer11 = nn.ConvTranspose2d(64, 64, (3, 3), (2, 2), (1, 1))
 
-        self.layer12 = EncodingDenseBlock(64, 64, drop_prob=self.drop_prob)
-        self.layer13 = nn.ConvTranspose2d(64, 64, (3, 3), (2, 2), (1, 1))
+        self.layer12 = EncodingDenseBlock(128, 128, drop_prob=self.drop_prob)
+        self.layer13 = nn.ConvTranspose2d(128, 64, (3, 3), (2, 2), (1, 1))
 
-        self.layer14 = EncodingDenseBlock(64, 64, drop_prob=self.drop_prob)
-        self.layer15 = nn.ConvTranspose2d(64, 64, (3, 3), (2, 2), (1, 1))
+        self.layer14 = EncodingDenseBlock(128, 128, drop_prob=self.drop_prob)
+        self.layer15 = nn.ConvTranspose2d(128, 64, (3, 3), (2, 2), (1, 1))
 
-        self.layer16 = EncodingDenseBlock(64, 64, drop_prob=self.drop_prob)
-        self.layer17 = nn.ConvTranspose2d(64, 64, (3, 3), (2, 2), (1, 1))
-        self.layer18 = EncodingDenseBlock(64, 64, drop_prob=self.drop_prob)
-        self.layer19 = nn.ConvTranspose2d(64, 64, (3, 3), (2, 2), (1, 1))
+        self.layer16 = EncodingDenseBlock(128, 128, drop_prob=self.drop_prob)
+        self.layer17 = nn.ConvTranspose2d(128, 64, (3, 3), (2, 2), (1, 1))
+        self.layer18 = EncodingDenseBlock(128, 128, drop_prob=self.drop_prob)
+        self.layer19 = nn.ConvTranspose2d(128, 64, (3, 3), (2, 2), (1, 1))
         self.layer20 = EncodingDenseBlock(64, 64, drop_prob=self.drop_prob)
         self.layer21 = nn.ConvTranspose2d(64, 64, (3, 3), (2, 2), (1, 1))
         self.layer22 = nn.Conv2d(64, 1, (3, 3), (1, 1), (1, 1))
@@ -109,12 +109,18 @@ class Generator2(nn.Module):
         x3 = self.layer6(self.layer5(x2))
         x4 = self.layer8(self.layer7(x3))
         x5 = self.layer11(self.layer10(self.layer9(x4)), output_size=(x4.size(2),x4.size(3)))
-        x6 = self.layer13(self.layer12(x5+x4), output_size=(x3.size(2),x3.size(3)))
-        x7 = self.layer15(self.layer14(x6+x3), output_size=(x2.size(2),x2.size(3)))
-        x8 = self.layer17(self.layer16(x7+x2), output_size=(x1.size(2),x1.size(3)))
-        x9 = self.layer19(self.layer18(x8+x1), output_size=(x.size(2)*int(self.scale_factor/2),x.size(3)*int(self.scale_factor/2)))
-        x10 = self.layer22(self.layer21(self.layer20(x9), output_size=(x.size(2)*self.scale_factor,x.size(3)*self.scale_factor)))
-        x11 = self.sigmoid(x10)
+        x6 = self.layer13(self.layer12(torch.cat([x4, x5], dim=1)), output_size=(x3.size(2),x3.size(3)))
+        x7 = self.layer15(self.layer14(torch.cat([x3, x6], dim=1)), output_size=(x2.size(2),x2.size(3)))
+        x8 = self.layer17(self.layer16(torch.cat([x7, x2], dim=1)), output_size=(x1.size(2),x1.size(3)))
+        if self.scale_factor == 4:
+            x9 = self.layer19(self.layer18(torch.cat([x8, x1], dim=1)), output_size=(x.size(2)*int(self.scale_factor/2),x.size(3)*int(self.scale_factor/2)))
+            x10 = self.layer21(self.layer20(x9), output_size=(x.size(2)*self.scale_factor,x.size(3)*self.scale_factor))
+        else:
+            x10 = self.layer19(self.layer18(torch.cat([x8, x1], dim=1)), output_size=(x.size(2)*self.scale_factor,x.size(3)*self.scale_factor))
+        # x9 = self.layer19(self.layer18(torch.cat([x8, x1], dim=1)), output_size=(x.size(2)*int(self.scale_factor/2),x.size(3)*int(self.scale_factor/2)))
+        # x10 = self.layer22(self.layer21(self.layer20(x9), output_size=(x.size(2)*self.scale_factor,x.size(3)*self.scale_factor)))
+        # x10 = self.layer22(x9)
+        x11 = self.sigmoid(self.layer22(x10))
         return x11
 
     def init_weights(self):

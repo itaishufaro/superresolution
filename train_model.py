@@ -34,7 +34,7 @@ if __name__ == '__main__':
     torch.cuda.empty_cache()
     torch.cuda.set_per_process_memory_fraction(.99, 0)
     print(f'Using device: {device}')
-    generator = gan.Generator()
+    generator = gan.Generator2(scale_factor=2)
     discriminator = gan.Discriminator()
     generator = generator.to(device)
     discriminator = discriminator.to(device)
@@ -43,14 +43,14 @@ if __name__ == '__main__':
     # criterion = nn.MSELoss().to(device)
     gen_optimizer = torch.optim.Adam(generator.parameters(), lr=1e-4, weight_decay=0.0001)
     disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=1e-4, weight_decay=0.0001)
-    gen_scheduler = torch.optim.lr_scheduler.StepLR(gen_optimizer, step_size=20, gamma=0.5)
-    disc_scheduler = torch.optim.lr_scheduler.StepLR(disc_optimizer, step_size=20, gamma=0.5)
+    gen_scheduler = torch.optim.lr_scheduler.StepLR(gen_optimizer, step_size=10, gamma=0.5)
+    disc_scheduler = torch.optim.lr_scheduler.StepLR(disc_optimizer, step_size=10, gamma=0.5)
     transform = T.Compose([T.ToTensor()])
     # trainLoader = DataLoader(dataset.StuffDataset(train_dir, transforms=transform, inputH=256, inputW=256),
     #                          batch_size=512, shuffle=True)
     # validLoader = DataLoader(dataset.StuffDataset(valid_dir, transforms=transform, inputH=256, inputW=256),
     #                          batch_size=512, shuffle=True)
-    SARDataset = dataset.StuffDataset(train_dir, transforms=transform, inputH=512, inputW=512, scale_factor=4)
+    SARDataset = dataset.StuffDataset(train_dir, transforms=transform, inputH=512, inputW=512, scale_factor=2)
     # split the dataset into train, validation and test data loaders
     # trainFull_set, test_set = train_test_split(SARDataset, test_size=0.2, random_state=42)
     # train_set, val_set = train_test_split(trainFull_set, test_size=0.2, random_state=42)
@@ -62,7 +62,7 @@ if __name__ == '__main__':
             testloader=train_loader, gen_optimizer=gen_optimizer,
             disc_optimizer=disc_optimizer, device=device,
             aug=None, start_epoch=0, save_every=10, save_name='model', wandb_logger=None,
-            alpha=1e-2, gen_scheduler=None, disc_scheduler=None)
+            alpha=1e-5, gen_scheduler=gen_scheduler, disc_scheduler=disc_scheduler)
 
 
 
