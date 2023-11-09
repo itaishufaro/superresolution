@@ -29,7 +29,7 @@ def show_image(lr, model, hr):
 
 
 if __name__ == '__main__':
-    path_to_model = 'models/model_gan2_34.pth'
+    path_to_model = 'models/model_gan2_100.pth'
     model = gan.Generator2(scale_factor=2)
     model.load_state_dict(torch.load(path_to_model))
     model.eval()
