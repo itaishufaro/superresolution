@@ -1,5 +1,6 @@
 # Super Resolution of SAR images using GAN
 An Implintation of a super resolution for SAR images based on the paper [SAR Image Super-Resolution Based on Noise-Free Generative Adversarial Network](https://ieeexplore.ieee.org/document/8899202).
+
 The dataset used is taken from the [Capella Space Synthetic Aperture Radar (SAR) Open Dataset](https://registry.opendata.aws/capella_opendata/)
 
 ## Description
@@ -43,7 +44,7 @@ models folder.
 ## Results
 Here we display the low resolution, original image and the generator output for 2x upsampling.
 
-![lr](lr.png)
+<img src="lr.png" alt="image" width="200%" height="auto">
 ![hr](hr.png)
 ![out](out.png)
 
