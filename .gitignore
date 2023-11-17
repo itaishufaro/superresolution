@@ -5,3 +5,4 @@ wandb
 trainSAR
 valSAR
 venv
+__pycache__

@@ -1,6 +1,6 @@
 from torch import nn
 import torch
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import resnet50
 
 class DenseLayer(nn.Module):
     # A dense layer with dropout and batch normalization with parameter in and out channels
