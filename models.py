@@ -3,7 +3,7 @@ from torch import nn
 
 
 class SarSubPixel(nn.Module):
-    def __init__(self, scale_factor=4, drop_prob=0.1,
+    def __init__(self, scale_factor=2, drop_prob=0.1,
                  colors=3):
         '''
 
@@ -14,20 +14,21 @@ class SarSubPixel(nn.Module):
         super(SarSubPixel, self).__init__()
         self.scale_factor = scale_factor
         self.drop_prob = drop_prob
+        self.colors = colors
         # Feature extraction
         self.features = nn.Sequential(
-            nn.Conv2d(colors, 64, kernel_size=5, padding=2),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 32, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Dropout(self.drop_prob)
+            nn.Conv2d(self.colors, 64, (5,5), (1,1), (2,2)),
+            nn.Tanh(),
+            nn.Conv2d(64, 32, (3,3),(1,1),(1,1)),
+            nn.Tanh(),
+            nn.Dropout(self.drop_prob),
+            # nn.BatchNorm2d(32),
         )
 
         # sub-pixel layer
         self.sub_pixel = nn.Sequential(
-            nn.Conv2d(32, (scale_factor**2)*colors, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.PixelShuffle(upscale_factor=self.scale_factor)
+            nn.Conv2d(32, (scale_factor**2)*colors, (3,3),(1,1),(1,1)),
+            nn.PixelShuffle(upscale_factor=self.scale_factor),
         )
 
     def forward(self, x):
@@ -45,7 +46,7 @@ class SarSubPixel(nn.Module):
         '''
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-                nn.init.kaiming_normal_(m.weight)
+                nn.init.xavier_uniform_(m.weight)
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
 
@@ -63,13 +64,17 @@ class PerceptualLoss(nn.Module):
 
 
 class SarVAE(nn.Module):
-    def __init__(self, scale_factor=4, hidden_dim=128):
+    def __init__(self, scale_factor=4, drop_prob=0.1,
+                 hidden_dim=128,
+                 colors=3):
         super(SarVAE, self).__init__()
         self.scale_factor = scale_factor
         self.hidden_dim = hidden_dim
+        self.drop_prob = drop_prob
+        self.colors = colors
         # encoder layers
         self.encoder = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(colors, hidden_dim//4, kernel_size=4, stride=2, padding=1),
             nn.ReLU(),
             nn.Conv2d(hidden_dim//4, hidden_dim//2, kernel_size=4, stride=2, padding=1),
             nn.ReLU(),
@@ -82,7 +87,7 @@ class SarVAE(nn.Module):
             nn.ReLU(),
             nn.ConvTranspose2d(hidden_dim//2, hidden_dim//4, kernel_size=4, stride=2, padding=1),
             nn.ReLU(),
-            nn.ConvTranspose2d(hidden_dim // 4, 3*(scale_factor**2), kernel_size=4, stride=2, padding=1), # changed stride for super resolution
+            nn.ConvTranspose2d(hidden_dim // 4, colors*(scale_factor**2), kernel_size=4, stride=2, padding=1), # changed stride for super resolution
             nn.PixelShuffle(upscale_factor=self.scale_factor)
         )
         self.initialize_weights()

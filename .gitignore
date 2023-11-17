@@ -2,4 +2,7 @@ train2017
 test2017
 val2017
 wandb
-models
+trainSAR
+valSAR
+venv
+__pycache__
