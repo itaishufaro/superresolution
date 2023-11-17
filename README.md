@@ -44,9 +44,9 @@ models folder.
 ## Results
 Here we display the low resolution, original image and the generator output for 2x upsampling.
 
-<img src="lr.png" alt="image" width="64px" height="auto">
-<img src="hr.png" alt="image" width="64px" height="auto">
-<img src="out.png" alt="image" width="64px" height="auto">
+<img src="lr.png" alt="image" width="256px" height="auto">
+<img src="hr.png" alt="image" width="256px" height="auto">
+<img src="out.png" alt="image" width="256px" height="auto">
 
 The validation score during training is:
 
