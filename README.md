@@ -42,9 +42,13 @@ models folder.
 
 ## Results
 Here we display the low resolution, original image and the generator output for 2x upsampling.
+
 ![lr](lr.png)
 ![hr](hr.png)
 ![out](out.png)
+
 The validation score during training is:
+
 ![graph](graph.png)
+
 the final SSIM score is 0.9273
