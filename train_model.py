@@ -7,9 +7,6 @@ import train
 import dataset
 import gan
 
-WANDB_KEY = "01717b5e711e2653d9cc50175f88588ce40619df"
-WANDB_ENTITY = "itai-shufaro"
-
 
 def parse_args():
     """
@@ -26,18 +23,20 @@ def parse_args():
     6. '--val_folder': A string that specifies the path to the validation dataset.
     7. '--wandb_key' : Your WANDB key for logging training process.
     8. '--wandb_entity' : Your WANDB entity where the project is located.
-
+    9. '--use_logger' : Whether to use WANDB logger for training. Default is False.
     Returns:
         args: A namespace that contains these command line argument values.
     """
     par = argparse.ArgumentParser(description="Train a super-resolution model")
     par.add_argument('--epochs', type=int, default=100, help='Number of epochs to train.')
-    par.add_argument('--batch_size', type=int, default=16, help='Batch size for training.')
+    par.add_argument('--batch_size', type=int, default=32, help='Batch size for training.')
     par.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for optimizer.')
     par.add_argument('--upscale_factor', type=int, default=2, help='Upscaling factor for super-resolution \
                         (currently supports only 2 or 4).')
-    par.add_argument('--train_folder', type=str, help='Path to the training dataset.')
-    par.add_argument('--val_folder', type=str, help='Path to the validation dataset.')
+    par.add_argument('--train_folder', type=str, default='train/',
+                     help='Path to the training dataset.')
+    par.add_argument('--val_folder', type=str, default='val/',
+                     help='Path to the validation dataset.')
 
     par.add_argument('--wandb_key', type=str, help='Your WANDB key for logging training process.')
     par.add_argument('--wandb_entity', type=str, help='Your WANDB entity where the project is located.')
@@ -66,7 +65,7 @@ if __name__ == '__main__':
     print(f'Using device: {device}')
 
     # Create Generator and Discriminator instances
-    generator = gan.Generator2(scale_factor=parser.upscale_factor)
+    generator = gan.Generator(scale_factor=parser.upscale_factor)
     discriminator = gan.Discriminator()
 
     # Move the models to GPU/CPU

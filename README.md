@@ -22,4 +22,22 @@ pip install requirements.txt
 ```
 
 ## Training
+In order to train the model you need to put the training images and validation images in different directories. Then run the following command:
+```bash
+python train_model.py --args --vars
+```
+where the possible arguments are:
+1. epochs - number of epochs to train the model. (Default: 100)
+2. batch_size - the batch size used for training and validation. (Default: 32)
+3. learning_rate - the learning rate used to train the model. It is the same for the discriminator and generator. (Default: 0.001)
+4. upscale_factor - Defines the multiplication factor for image enlargement. (Default: 2)
+5. train_folder - Specifies the directory where the training datasets are stored. (Default: './train')
+6. val_folder - Specifies the directory where the validation datasets are stored. (Default: './val')
+7. wandb_key - Your Weights & Biases API key, needed for using Weights & Biases for experiment logging. (Default: '')
+8. wandb_entity - The entity (user or team) under which the Weights & Biases runs will be logged. (Default: '')
+9. use_logger - A boolean flag to decide whether to use a logger or not. (Default: False)
 
+The training is done by reshaping the images to be by 256x256 and then lower scale it further by up_scale factor. Models are saved into the
+models folder.
+
+## Results
