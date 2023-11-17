@@ -44,7 +44,7 @@ models folder.
 ## Results
 Here we display the low resolution, original image and the generator output for 2x upsampling.
 
-<img src="lr.png" alt="image" width="200%" height="auto">
+<img src="lr.png" alt="image" width="256px" height="auto">
 ![hr](hr.png)
 ![out](out.png)
 
