@@ -44,8 +44,11 @@ models folder.
 ## Results
 Here we display the low resolution, original image and the generator output for 2x upsampling.
 
+Low resolution image:
 <img src="lr.png" alt="image" width="256px" height="auto">
+High resolution image:
 <img src="hr.png" alt="image" width="256px" height="auto">
+Upscaled image using generator network.
 <img src="out.png" alt="image" width="256px" height="auto">
 
 The validation score during training is:
