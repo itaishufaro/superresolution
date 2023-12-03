@@ -25,7 +25,7 @@ pip install requirements.txt
 ## Training
 In order to train the model you need to put the training images and validation images in different directories. Then run the following command:
 ```bash
-python train_model.py --args --vars
+python train_model.py --args --vals
 ```
 where the possible arguments are:
 1. epochs - number of epochs to train the model. (Default: 100)
